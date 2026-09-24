@@ -72,7 +72,7 @@ jobs:
         shell: bash
         run: |
           release_options=(--generate-notes)
-          if [[ "$GITHUB_EVENT_NAME" == "push" || "$MANUAL_PRERELEASE" != "false" ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "$MANUAL_PRERELEASE" == "true" ]]; then
             release_options+=(--prerelease)
           fi
           gh release create "$RELEASE_TAG" \

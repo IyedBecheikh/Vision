@@ -1944,10 +1944,15 @@ class OpenCodePlatformTests(unittest.TestCase):
         state_path.write_text(json.dumps(state) + "\n", encoding="utf-8")
         incoming_root = self.root / "incoming" / "vision"
         shutil.copytree(PACKAGE, incoming_root, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-        (incoming_root / "operate" / "VERSION").write_text("1.2.2\n", encoding="utf-8")
+        (incoming_root / "operate" / "VERSION").write_text(
+            f"{NEXT_PACKAGE_VERSION}\n", encoding="utf-8"
+        )
         user_agents = (incoming_root / "operate" / "user_AGENTS.md").read_text(encoding="utf-8")
         (incoming_root / "operate" / "user_AGENTS.md").write_text(
-            user_agents.replace("vision-version: 1.2.1", "vision-version: 1.2.2"),
+            user_agents.replace(
+                f"vision-version: {PACKAGE_VERSION}",
+                f"vision-version: {NEXT_PACKAGE_VERSION}",
+            ),
             encoding="utf-8",
         )
         incoming = PackageLayout.resolve(incoming_root)
@@ -1963,7 +1968,7 @@ class OpenCodePlatformTests(unittest.TestCase):
         self.assertFalse(stale.exists())
         self.assertEqual(
             (self.opencode_home / "vision" / "operate" / "VERSION").read_text().strip(),
-            "1.2.2",
+            NEXT_PACKAGE_VERSION,
         )
         config = json.loads(
             (self.opencode_home / "vision" / "config.json").read_text(encoding="utf-8")

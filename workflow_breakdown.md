@@ -28,7 +28,7 @@ For exact behavior, use the source that owns the relevant contract:
   reporting (a shared entry point over `report_tokens_codex.py` and
   `report_tokens_opencode.py`).
 
-This revision describes packaged version `1.2.0`, read from
+This revision describes packaged version `1.0.0`, read from
 `vision/operate/VERSION`. Version markers, package validation, and
 release tests prevent that value from drifting from the distributed user
 instruction block.

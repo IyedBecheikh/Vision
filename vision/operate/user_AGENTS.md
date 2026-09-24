@@ -1,5 +1,5 @@
 <!-- vision-user-id: IyedBecheikh/vision -->
-<!-- vision-version: 1.2.1 -->
+<!-- vision-version: 1.0.0 -->
 <!-- vision-user-managed-start -->
 # AGENTS.md
 

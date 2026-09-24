@@ -34,7 +34,7 @@ untouched.
 
 - `python -B -m unittest discover -s scripts -p "test_*.py"` - 91 tests pass.
 - `python -B vision/runtime/workflow.py validate --package-root vision --json`.
-- `python -B scripts/package_release.py` - builds `dist/vision-1.2.1.zip`.
+- `python -B scripts/package_release.py` - builds `dist/vision-1.0.0.zip`.
 
 ## Pending Work and Blockers
 
