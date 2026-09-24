@@ -1,0 +1,83 @@
+name: Build and publish release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Semantic release tag, for example v1.1.0"
+        required: true
+        type: string
+      prerelease:
+        description: "Publish as a GitHub prerelease"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Resolve and package the release
+        id: package
+        env:
+          MANUAL_TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            release_tag="$GITHUB_REF_NAME"
+          else
+            release_tag="$MANUAL_TAG"
+          fi
+          release_version="${release_tag#v}"
+          release_archive="dist/vision-${release_version}.zip"
+          python -B scripts/test_workflow_runtime.py -v
+          python -B scripts/test_deployment_token_report.py -v
+          python -B vision/runtime/workflow.py validate \
+            --package-root vision \
+            --json
+          python scripts/package_release.py \
+            --release-tag "$release_tag" \
+            --output-dir dist
+          python scripts/package_release.py \
+            --verify "$release_archive" \
+            --version "$release_version"
+          source_sha="$(git rev-parse HEAD)"
+          echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "sha=$source_sha" >> "$GITHUB_OUTPUT"
+          echo "archive=$release_archive" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.package.outputs.tag }}
+          RELEASE_SHA: ${{ steps.package.outputs.sha }}
+          RELEASE_ARCHIVE: ${{ steps.package.outputs.archive }}
+          MANUAL_PRERELEASE: ${{ inputs.prerelease }}
+        shell: bash
+        run: |
+          release_options=(--generate-notes)
+          if [[ "$GITHUB_EVENT_NAME" == "push" || "$MANUAL_PRERELEASE" != "false" ]]; then
+            release_options+=(--prerelease)
+          fi
+          gh release create "$RELEASE_TAG" \
+            "$RELEASE_ARCHIVE" \
+            dist/SHA256SUMS \
+            --title "vision $RELEASE_TAG" \
+            --target "$RELEASE_SHA" \
+            "${release_options[@]}"
