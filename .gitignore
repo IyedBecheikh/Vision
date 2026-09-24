@@ -4,7 +4,6 @@ scripts/__pycache__/
 tests/
 AGENTS.md
 workflow_diary.md
-heavy_route_*
 scripts/test_deployment_token_report.py
 
 # vision-managed-start
