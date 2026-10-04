@@ -14,12 +14,19 @@ from .base import (
 )
 
 
-SUPPORTED_PLATFORMS: tuple[str, ...] = ("codex", "opencode")
-PLATFORM_CHOICES: tuple[str, ...] = ("codex", "opencode", "both")
+SUPPORTED_PLATFORMS: tuple[str, ...] = ("codex", "opencode", "claude")
+PLATFORM_CHOICES: tuple[str, ...] = ("codex", "opencode", "claude", "both", "all")
+_BOTH_PLATFORMS: tuple[str, ...] = ("codex", "opencode")
 
 
 def default_opencode_home() -> Path:
     from .opencode import default_opencode_home as resolve
+
+    return resolve()
+
+
+def default_claude_home() -> Path:
+    from .claude import default_claude_home as resolve
 
     return resolve()
 
@@ -35,6 +42,7 @@ def adapter_for(
     *,
     codex_home: Path | str | None = None,
     opencode_home: Path | str | None = None,
+    claude_home: Path | str | None = None,
 ) -> PlatformAdapter:
     if platform == "codex":
         from .codex import CodexAdapter
@@ -44,11 +52,17 @@ def adapter_for(
         from .opencode import OpenCodeAdapter
 
         return OpenCodeAdapter(_resolve_home(opencode_home, default_opencode_home()).resolve())
+    if platform == "claude":
+        from .claude import ClaudeAdapter
+
+        return ClaudeAdapter(_resolve_home(claude_home, default_claude_home()).resolve())
     raise PlatformError(f"unsupported platform: {platform!r}")
 
 
 def expand_selection(selection: str) -> list[str]:
     if selection == "both":
+        return list(_BOTH_PLATFORMS)
+    if selection == "all":
         return list(SUPPORTED_PLATFORMS)
     if selection in SUPPORTED_PLATFORMS:
         return [selection]
@@ -61,6 +75,7 @@ def detect_platforms(
     *,
     codex_home: Path | str | None = None,
     opencode_home: Path | str | None = None,
+    claude_home: Path | str | None = None,
 ) -> list[str]:
     """Detect supported clients from their config home or executable."""
 
@@ -71,6 +86,9 @@ def detect_platforms(
     opencode = _resolve_home(opencode_home, default_opencode_home())
     if opencode.exists() or shutil.which("opencode"):
         detected.append("opencode")
+    claude = _resolve_home(claude_home, default_claude_home())
+    if claude.exists() or shutil.which("claude"):
+        detected.append("claude")
     return detected
 
 
@@ -83,6 +101,7 @@ __all__ = [
     "SUPPORTED_PLATFORMS",
     "PLATFORM_CHOICES",
     "adapter_for",
+    "default_claude_home",
     "default_opencode_home",
     "detect_platforms",
     "expand_selection",

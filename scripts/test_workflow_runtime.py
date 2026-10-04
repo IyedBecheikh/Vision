@@ -199,7 +199,7 @@ class MarkerTests(unittest.TestCase):
         self.assertIn('model = "gpt-6-luna"', explorer)
         self.assertIn('model = "gpt-6-luna"', investigator)
         self.assertIn('model = "gpt-6-luna"', executor)
-        self.assertIn('model = "gpt-6-sol"', senior)
+        self.assertIn('model = "gpt-6.1-sol"', senior)
         self.assertIn('model = "gpt-6-luna"', tester)
         self.assertIn('model = "gpt-6-luna"', archivist)
 
@@ -516,23 +516,23 @@ class OrchestratorConfigTests(unittest.TestCase):
     def test_config_sets_top_level_model_and_records_choice(self) -> None:
         original = 'model = "gpt-6-luna"\n\n[agents]\nenabled = false\nkeep = 1\n'
         rendered = patch_orchestrator_model(original, "sol")
-        self.assertIn('model = "gpt-6-sol"', rendered)
+        self.assertIn('model = "gpt-6.1-sol"', rendered)
         self.assertIn("keep = 1", rendered)
         data = tomllib.loads(rendered)
-        self.assertEqual(data["model"], "gpt-6-sol")
+        self.assertEqual(data["model"], "gpt-6.1-sol")
         self.assertEqual(data["vision"]["orchestrator"], "sol")
-        self.assertEqual(data["vision"]["orchestrator_model"], "gpt-6-sol")
+        self.assertEqual(data["vision"]["orchestrator_model"], "gpt-6.1-sol")
         self.assertEqual(patch_orchestrator_model(rendered, "sol"), rendered)
 
         removed = remove_workflow_owned_settings(rendered)
         self.assertNotIn("[vision]", removed)
-        self.assertEqual(tomllib.loads(removed)["model"], "gpt-6-sol")
+        self.assertEqual(tomllib.loads(removed)["model"], "gpt-6.1-sol")
 
     def test_config_cli_writes_the_requested_model(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             home = Path(temporary) / "codex-home"
             home.mkdir()
-            (home / "config.toml").write_text('model = "gpt-6-sol"\n', encoding="utf-8")
+            (home / "config.toml").write_text('model = "gpt-6.1-sol"\n', encoding="utf-8")
             completed = subprocess.run(
                 [
                     sys.executable,
@@ -580,7 +580,7 @@ class OrchestratorConfigTests(unittest.TestCase):
             (agents / "senior_executor.toml").write_text(
                 "# vision-worker: senior_executor\n"
                 'name = "senior_executor"\n'
-                'model = "gpt-6-sol"\n'
+                'model = "gpt-6.1-sol"\n'
                 'model_reasoning_effort = "medium"\n',
                 encoding="utf-8",
             )
@@ -1535,7 +1535,7 @@ class LifecycleIntegrationTests(unittest.TestCase):
             "[features]\nmulti_agent = true",
             '[features]\nmulti_agent = true\nkeep_feature = "keep"',
         )
-        config = config.replace('model = "gpt-6-sol"', 'model = "keep"', 1)
+        config = config.replace('model = "gpt-6.1-sol"', 'model = "keep"', 1)
         self.runtime.config_toml.write_text(config, encoding="utf-8")
         unrelated_worker = self.runtime.agents / "unrelated.toml"
         unrelated_worker.write_text('model = "keep"\n', encoding="utf-8")
@@ -2050,12 +2050,181 @@ class OpenCodePlatformTests(unittest.TestCase):
         )
 
 
+class ClaudePlatformTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary.name)
+        self.codex_home = self.root / "codex-home"
+        self.opencode_home = self.root / "opencode-home"
+        self.claude_home = self.root / "claude-home"
+        self.project_root = self.root / "project"
+        self.project_root.mkdir()
+        self.project = ProjectPaths(self.project_root)
+        self.package = PackageLayout.resolve(PACKAGE)
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def bootstrap(self, platforms: list[str] | None = None) -> None:
+        from runtime.platform_lifecycle import plan_platform_bootstrap
+
+        plan_platform_bootstrap(
+            self.package,
+            codex_home=self.codex_home,
+            opencode_home=self.opencode_home,
+            claude_home=self.claude_home,
+            platforms=platforms or ["claude"],
+            project=self.project,
+        ).apply()
+
+    def adapter(self):
+        from runtime.platforms import adapter_for
+
+        return adapter_for("claude", claude_home=self.claude_home)
+
+    def test_claude_bootstrap_installs_native_subagents(self) -> None:
+        self.bootstrap()
+        agents = self.claude_home / "agents"
+        for role in self.package.worker_names | {"default_executor"}:
+            self.assertTrue((agents / f"{role}.md").is_file(), role)
+        explorer = (agents / "explorer.md").read_text(encoding="utf-8")
+        self.assertIn("name: explorer", explorer)
+        self.assertIn("model: claude-sonnet-5-5", explorer)
+        self.assertIn("tools: Read, Grep, Glob, Bash, WebFetch, WebSearch", explorer)
+        self.assertNotIn("Edit", explorer)
+        executor = (agents / "default_executor.md").read_text(encoding="utf-8")
+        self.assertIn("model: claude-sonnet-5-5", executor)
+        self.assertIn("Edit", executor)
+        senior = (agents / "senior_executor.md").read_text(encoding="utf-8")
+        self.assertIn("model: claude-opus-5-5", senior)
+        self.assertNotIn("{{VISION_HOME}}", explorer)
+        instructions = (self.claude_home / "CLAUDE.md").read_text(encoding="utf-8")
+        self.assertIn("<!-- vision-user-managed-start -->", instructions)
+        self.assertIn("~/.claude/vision/operate/install.md", instructions)
+        self.assertNotIn("~/.codex", instructions)
+        state = json.loads(
+            (self.claude_home / "vision" / "install_state.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(state["platform"], "claude")
+        self.assertEqual(state["platforms"], ["claude"])
+        self.assertEqual(
+            set(state["owned_workers"]),
+            self.package.worker_names | {"default_executor"},
+        )
+        self.assertTrue(
+            (
+                self.claude_home
+                / "skills"
+                / "deployment-token-report"
+                / "scripts"
+                / "report_tokens_claude.py"
+            ).is_file()
+        )
+        self.assertFalse(self.codex_home.exists())
+        self.assertFalse(self.opencode_home.exists())
+
+    def test_claude_worker_model_config_regenerates_agent(self) -> None:
+        from runtime.platform_lifecycle import plan_platform_config
+
+        self.bootstrap()
+        plan = plan_platform_config(
+            key="explorer",
+            value="opus",
+            codex_home=self.codex_home,
+            opencode_home=self.opencode_home,
+            claude_home=self.claude_home,
+            platforms=["claude"],
+        )
+        plan.apply()
+        explorer = (self.claude_home / "agents" / "explorer.md").read_text(encoding="utf-8")
+        self.assertIn("model: opus", explorer)
+        config = json.loads(
+            (self.claude_home / "vision" / "config.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(config["worker_models"]["explorer"], "opus")
+
+    def test_claude_senior_target_maps_to_opus(self) -> None:
+        from runtime.platform_lifecycle import plan_platform_config
+
+        self.bootstrap()
+        plan_platform_config(
+            key="senior",
+            value="sol",
+            codex_home=self.codex_home,
+            opencode_home=self.opencode_home,
+            claude_home=self.claude_home,
+            platforms=["claude"],
+        ).apply()
+        senior = (self.claude_home / "agents" / "senior_executor.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("model: claude-opus-5-5", senior)
+
+    def test_claude_config_rejects_invalid_model_id(self) -> None:
+        from runtime.platform_lifecycle import plan_platform_config
+
+        self.bootstrap()
+        with self.assertRaisesRegex(ValidationError, "invalid Claude Code model id"):
+            plan_platform_config(
+                key="explorer",
+                value="not a model",
+                codex_home=self.codex_home,
+                opencode_home=self.opencode_home,
+                claude_home=self.claude_home,
+                platforms=["claude"],
+            )
+
+    def test_claude_remove_preserves_codex_and_unrelated_resources(self) -> None:
+        from runtime.platform_lifecycle import plan_platform_remove
+
+        self.bootstrap(["codex", "claude"])
+        unrelated_agent = self.claude_home / "agents" / "unrelated.md"
+        unrelated_agent.write_text("---\nname: unrelated\n---\nkeep\n", encoding="utf-8")
+        unrelated_skill = self.claude_home / "skills" / "unrelated-skill"
+        unrelated_skill.mkdir(parents=True)
+        (unrelated_skill / "SKILL.md").write_text(
+            "---\nname: unrelated-skill\ndescription: keep\n---\n", encoding="utf-8"
+        )
+        settings = self.claude_home / "settings.json"
+        settings.write_text('{"permissions": {}}\n', encoding="utf-8")
+        instructions = self.claude_home / "CLAUDE.md"
+        instructions.write_text(
+            "# Keep this user policy.\n\n" + instructions.read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+        plan_platform_remove(
+            codex_home=self.codex_home,
+            opencode_home=self.opencode_home,
+            claude_home=self.claude_home,
+            platforms=["claude"],
+            project=self.project,
+        ).apply()
+        self.assertFalse((self.claude_home / "vision").exists())
+        self.assertFalse((self.claude_home / "agents" / "explorer.md").exists())
+        self.assertTrue(unrelated_agent.is_file())
+        self.assertTrue((unrelated_skill / "SKILL.md").is_file())
+        self.assertEqual(settings.read_text(encoding="utf-8"), '{"permissions": {}}\n')
+        self.assertEqual(
+            instructions.read_text(encoding="utf-8"), "# Keep this user policy.\n"
+        )
+        self.assertTrue((self.codex_home / "vision" / "runtime" / "workflow.py").is_file())
+        self.assertTrue((self.codex_home / "agents" / "explorer.toml").is_file())
+
+    def test_all_selection_includes_claude_but_both_does_not(self) -> None:
+        from runtime.platforms import expand_selection
+
+        self.assertEqual(expand_selection("both"), ["codex", "opencode"])
+        self.assertEqual(expand_selection("all"), ["codex", "opencode", "claude"])
+        self.assertEqual(expand_selection("claude"), ["claude"])
+
+
 class NativeCommandTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
         self.codex_home = self.root / "codex-home"
         self.opencode_home = self.root / "opencode-home"
+        self.claude_home = self.root / "claude-home"
         self.project_root = self.root / "project"
         self.project_root.mkdir()
         self.project = ProjectPaths(self.project_root)
@@ -2071,6 +2240,7 @@ class NativeCommandTests(unittest.TestCase):
             self.package,
             codex_home=self.codex_home,
             opencode_home=self.opencode_home,
+            claude_home=self.claude_home,
             platforms=platforms,
             project=self.project,
         ).apply()
@@ -2084,6 +2254,11 @@ class NativeCommandTests(unittest.TestCase):
         from runtime.platforms import adapter_for
 
         return adapter_for("opencode", opencode_home=self.opencode_home)
+
+    def claude_adapter(self):
+        from runtime.platforms import adapter_for
+
+        return adapter_for("claude", claude_home=self.claude_home)
 
     def incoming_package(self) -> PackageLayout:
         incoming_root = self.root / "incoming" / "vision"
@@ -2157,6 +2332,21 @@ class NativeCommandTests(unittest.TestCase):
         config = (self.opencode_home / "commands" / "config.md").read_text(encoding="utf-8")
         self.assertIn("runtime/workflow.py config --key", config)
         self.assertFalse((self.opencode_home / "prompts").exists())
+
+    def test_claude_commands_install_and_validate(self) -> None:
+        self.bootstrap(["claude"])
+        found = self.claude_adapter().validate_commands()
+        self.assertEqual(
+            sorted(found),
+            ["config", "heavy", "install", "light", "medium", "remove", "update"],
+        )
+        heavy = (self.claude_home / "commands" / "heavy.md").read_text(encoding="utf-8")
+        self.assertIn("$ARGUMENTS", heavy)
+        self.assertIn("argument-hint:", heavy)
+        self.assertIn("~/.claude/vision/heavy_route.md", heavy)
+        self.assertIn("**Heavy**", heavy)
+        self.assertNotIn("{{VISION_HOME}}", heavy)
+        self.assertFalse((self.opencode_home / "commands").exists())
 
     def test_lifecycle_commands_call_runtime_and_routes_reference_shared_contract(self) -> None:
         self.bootstrap(["codex", "opencode"])

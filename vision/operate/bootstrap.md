@@ -18,12 +18,13 @@ Stop on any validation error. From the project being bootstrapped, run:
 python3 <extracted>/vision/runtime/workflow.py bootstrap \
   --package-root <extracted>/vision \
   --project <project> \
-  --platform codex|opencode|both
+  --platform codex|opencode|claude|both|all
 ```
 
 Pass `--platform` to install Vision for the Codex client, the OpenCode client,
-or both. When it is omitted and more than one supported client is detected, the
-CLI prompts for a choice; otherwise it installs for the detected client.
+the Claude Code client, both (Codex + OpenCode), or all three. When it is omitted
+and more than one supported client is detected, the CLI prompts for a choice;
+otherwise it installs for the detected client.
 
 Expect the bootstrap to install the shared runtime, source backup, merged
 user-level workflow instructions, installation state, generated worker
@@ -35,16 +36,17 @@ ordinary project instructions in the same compensating transaction. For Codex,
 the generated config enables multi-agent tools and writes
 `[features.multi_agent_v2]` with `enabled = true`,
 `min_wait_timeout_ms = 300000`, `default_wait_timeout_ms = 300000`, and
-`max_wait_timeout_ms = 1800000` while preserving unrelated settings. OpenCode
-owns its own provider, credential, and main-model configuration, and Vision
-only adds per-role agent files.
+`max_wait_timeout_ms = 1800000` while preserving unrelated settings. OpenCode and
+Claude Code own their provider, credential, and main-model configuration, and
+Vision only adds per-role agent files.
 
 ## Required documentation action
 
 Read the command's `agent_actions` result. Expect one required `archivist`
 action for the Project Documentation Framework. Spawn the `archivist` subagent
 (in Codex with `agent_type="archivist"`, `task_name="bootstrap_docs"`, and
-`fork_turns="none"`; in OpenCode as the native `archivist` subagent). Use Task ID
+`fork_turns="none"`; in OpenCode or Claude Code as the native `archivist`
+subagent). Use Task ID
 `bootstrap_docs` and the Documentation Context +
 Audience, Documentation Task + Goal, and Main-Agent Documentation Guidance
 capsule. Include the project root and returned

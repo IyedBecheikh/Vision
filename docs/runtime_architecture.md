@@ -8,19 +8,23 @@ generated outputs, and project-owned content.
 - Route documents and worker subagents: authoritative behavior distributed by a
   release.
 - Canonical worker instructions: `vision/workers/<role>.md`, one body per role.
-  Platform renderers turn that body into Codex TOML (`vision/agents/<role>.toml`)
-  or OpenCode Markdown (`agents/<role>.md`), so the clients cannot drift.
-- `~/.codex/vision/` and `~/.config/opencode/vision/`: per-platform user command
-  guides, the user-level instruction source, and package version metadata.
+  Platform renderers turn that body into Codex TOML (`vision/agents/<role>.toml`),
+  OpenCode Markdown (`agents/<role>.md`), or Claude Code Markdown
+  (`agents/<role>.md`), so the clients cannot drift.
+- `~/.codex/vision/`, `~/.config/opencode/vision/`, and `~/.claude/vision/`:
+  per-platform user command guides, the user-level instruction source, and
+  package version metadata.
 - `install_state.json`: installed version, selected platforms, and ownership
   manifests, written per platform.
 - Heavy and Archivist contracts: fixed release inputs copied unchanged.
 - Worker files and workflow-owned platform settings: materialized outputs.
 - Native commands: one canonical mapping rendered as Codex skills
-  (`~/.codex/skills/vision-*/`) or OpenCode slash commands
-  (`~/.config/opencode/commands/*.md`), owned and refreshed per platform.
-- User-level `AGENTS.md`: one marked workflow region containing route,
-  documentation, rollout, and lifecycle-command policy in each client.
+  (`~/.codex/skills/vision-*/`), OpenCode slash commands
+  (`~/.config/opencode/commands/*.md`), or Claude Code slash commands
+  (`~/.claude/commands/*.md`), owned and refreshed per platform.
+- User-level instructions: one marked workflow region containing route,
+  documentation, rollout, and lifecycle-command policy in each client
+  (`~/.codex/AGENTS.md`, `~/.config/opencode/AGENTS.md`, `~/.claude/CLAUDE.md`).
 - Project `AGENTS.md`: native project-owned personalization, never generated or
   wrapped by the current workflow.
 - Project documentation updates during deployment: main owns `project_progress.md`,
@@ -40,10 +44,13 @@ generated outputs, and project-owned content.
 - `platforms/codex.py`: Codex backend, reproducing existing behavior.
 - `platforms/opencode.py`: OpenCode backend (native Markdown subagents,
   permissions, and ownership).
+- `platforms/claude.py`: Claude Code backend (Markdown subagents with Sonnet 5.5
+  worker and Opus 5.5 high-end defaults, slash commands, and ownership).
 - `workers.py`: canonical worker store loader and Codex renderer.
-- `commands.py`: canonical native command mapping and Codex/OpenCode renderers.
+- `commands.py`: canonical native command mapping and Codex/OpenCode/Claude Code
+  renderers.
 - `platform_lifecycle.py`: platform-aware bootstrap/update/remove/config
-  composition for `codex`, `opencode`, and `both`.
+  composition for `codex`, `opencode`, `claude`, `both`, and `all`.
 - `session_usage.py`: platform-neutral dispatch to the token-report backend.
 - `markers.py`: user-region handling, legacy project-wrapper parsing, and the
   `{{VISION_HOME}}` platform-resolved placeholder.
@@ -61,10 +68,11 @@ generated outputs, and project-owned content.
 
 The removal plan preserves native project `AGENTS.md`, deletes private workflow
 state, strips only the marked workflow region from each selected client's
-user-level `AGENTS.md`, removes workflow-owned Codex settings and worker files,
-and cleans the dedicated runtime directory. A legacy wrapped project entry is
-first restored to ordinary project instructions. `agent_docs/`, unrelated
-user-level content, and unrelated OpenCode agents/skills/config remain.
+user-level instruction file, removes workflow-owned Codex settings and worker
+files, and cleans the dedicated runtime directory. A legacy wrapped project entry
+is first restored to ordinary project instructions. `agent_docs/`, unrelated
+user-level content, and unrelated OpenCode and Claude Code
+agents/skills/config remain.
 
 ## Upgrade contract
 

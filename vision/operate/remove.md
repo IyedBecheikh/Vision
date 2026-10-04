@@ -16,13 +16,15 @@ python3 {{VISION_HOME}}/runtime/workflow.py \
 ```
 
 Use the equivalent `py -3.11` invocation and native paths on Windows. Pass
-`--platform codex|opencode|both` to select which client installation to remove.
+`--platform codex|opencode|claude|both|all` to select which client installation
+to remove.
 Report the plan and explicitly warn that the confirmed phase will permanently
 delete Vision-owned resources for the selected client(s):
 
 - project workflow state and legacy hidden workflow resources;
-- the workflow-managed region in the client's user-level `AGENTS.md` (the user
-  file itself is deleted only when no unrelated content remains);
+- the workflow-managed region in the client's user-level instruction file
+  (`AGENTS.md` for Codex/OpenCode, `CLAUDE.md` for Claude Code; the user file
+  itself is deleted only when no unrelated content remains);
 - workflow-owned keys in the Codex config, when Codex is selected;
 - generated worker files carrying a matching `vision-worker` ownership marker;
 - skill directories tracked by installation state and carrying a matching

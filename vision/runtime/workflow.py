@@ -39,7 +39,16 @@ from runtime.platform_lifecycle import (
     plan_platform_update,
     resolve_platforms,
 )
-from runtime.platforms import PLATFORM_CHOICES, adapter_for, default_opencode_home
+from runtime.platforms import (
+    PLATFORM_CHOICES,
+    adapter_for,
+    default_claude_home,
+    default_opencode_home,
+)
+from runtime.platforms.claude import (
+    claude_is_installed,
+    read_installed_state as read_claude_state,
+)
 from runtime.platforms.opencode import opencode_is_installed, read_installed_state
 from runtime.release import (
     acquire,
@@ -59,11 +68,12 @@ def _default_codex_home() -> Path:
 def _add_common(parser: argparse.ArgumentParser, *, project: bool = True) -> None:
     parser.add_argument("--codex-home", type=Path, default=_default_codex_home())
     parser.add_argument("--opencode-home", type=Path, default=default_opencode_home())
+    parser.add_argument("--claude-home", type=Path, default=default_claude_home())
     parser.add_argument(
         "--platform",
         choices=PLATFORM_CHOICES,
         default=None,
-        help="select codex, opencode, or both (default: installed clients)",
+        help="select codex, opencode, claude, both, or all (default: installed clients)",
     )
     if project:
         parser.add_argument("--project", type=Path, default=Path.cwd())
@@ -144,6 +154,7 @@ def _platforms(args: argparse.Namespace, *, prompt: bool | None = None) -> list[
         getattr(args, "platform", None),
         codex_home=args.codex_home.expanduser().resolve(),
         opencode_home=args.opencode_home.expanduser().resolve(),
+        claude_home=args.claude_home.expanduser().resolve(),
         prompt=prompt,
     )
 
@@ -189,6 +200,12 @@ def _opencode_adapter(args: argparse.Namespace):
     )
 
 
+def _claude_adapter(args: argparse.Namespace):
+    return adapter_for(
+        "claude", claude_home=args.claude_home.expanduser().resolve()
+    )
+
+
 def _installed_version(args: argparse.Namespace) -> str | None:
     runtime = RuntimePaths(args.codex_home.expanduser().resolve())
     if _has_package_version(runtime.runtime):
@@ -196,6 +213,11 @@ def _installed_version(args: argparse.Namespace) -> str | None:
     adapter = _opencode_adapter(args)
     if opencode_is_installed(adapter):
         version = read_installed_state(adapter).get("version")
+        if isinstance(version, str) and version:
+            return version
+    claude = _claude_adapter(args)
+    if claude_is_installed(claude):
+        version = read_claude_state(claude).get("version")
         if isinstance(version, str) and version:
             return version
     return None
@@ -208,6 +230,9 @@ def _installed_source_root(args: argparse.Namespace) -> Path:
     adapter = _opencode_adapter(args)
     if opencode_is_installed(adapter):
         return adapter.runtime_paths().workflow_home
+    claude = _claude_adapter(args)
+    if claude_is_installed(claude):
+        return claude.runtime_paths().workflow_home
     raise WorkflowError("no installed platform was found; run the bootstrap first")
 
 
@@ -243,6 +268,8 @@ def _delegate_update(incoming_root: Path, args: argparse.Namespace) -> int:
         str(args.codex_home),
         "--opencode-home",
         str(args.opencode_home),
+        "--claude-home",
+        str(args.claude_home),
         "--project",
         str(args.project),
     ]
@@ -328,6 +355,7 @@ def main() -> int:
             plan = plan_platform_remove(
                 codex_home=args.codex_home.expanduser().resolve(),
                 opencode_home=args.opencode_home.expanduser().resolve(),
+                claude_home=args.claude_home.expanduser().resolve(),
                 platforms=platforms,
                 project=project,
             )
@@ -346,6 +374,7 @@ def main() -> int:
                     value=args.value,
                     codex_home=args.codex_home.expanduser().resolve(),
                     opencode_home=args.opencode_home.expanduser().resolve(),
+                    claude_home=args.claude_home.expanduser().resolve(),
                     platforms=platforms,
                 ),
                 args,
@@ -364,6 +393,7 @@ def main() -> int:
                     package,
                     codex_home=args.codex_home.expanduser().resolve(),
                     opencode_home=args.opencode_home.expanduser().resolve(),
+                    claude_home=args.claude_home.expanduser().resolve(),
                     platforms=platforms,
                     project=project,
                     legacy_local_instructions=legacy_local,
@@ -381,10 +411,13 @@ def main() -> int:
                 raise WorkflowError("both active and disabled project entry points exist")
             platforms = _platforms(args)
             adapter = _opencode_adapter(args)
+            claude = _claude_adapter(args)
             if _has_package_version(runtime.runtime):
                 package = PackageLayout.resolve(runtime.runtime)
             elif opencode_is_installed(adapter):
                 package = PackageLayout.resolve(adapter.runtime_paths().workflow_home)
+            elif claude_is_installed(claude):
+                package = PackageLayout.resolve(claude.runtime_paths().workflow_home)
             elif args.package_root is not None:
                 package = PackageLayout.resolve(args.package_root)
             else:
@@ -442,6 +475,7 @@ def main() -> int:
                 plan = plan_platform_only_update(
                     codex_home=args.codex_home.expanduser().resolve(),
                     opencode_home=args.opencode_home.expanduser().resolve(),
+                    claude_home=args.claude_home.expanduser().resolve(),
                     platforms=platforms,
                     project=project,
                     legacy_local_instructions=legacy_local,
@@ -473,6 +507,7 @@ def main() -> int:
                     incoming,
                     codex_home=args.codex_home.expanduser().resolve(),
                     opencode_home=args.opencode_home.expanduser().resolve(),
+                    claude_home=args.claude_home.expanduser().resolve(),
                     platforms=platforms,
                     project=project,
                     legacy_local_instructions=legacy_local,

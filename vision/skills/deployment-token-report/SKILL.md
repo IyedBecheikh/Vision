@@ -20,8 +20,8 @@ Use the supplied deployment ID unchanged. It must match
 ```
 
 Run the bundled `scripts/report_tokens.py` with `--deployment-id` and
-`--format markdown`. Pass `--platform codex` or `--platform opencode` to select
-the native backend; the default is Codex.
+`--format markdown`. Pass `--platform codex`, `--platform opencode`, or
+`--platform claude` to select the native backend; the default is Codex.
 
 - The Codex backend uses `CODEX_THREAD_ID` to identify this Archivist rollout,
   resolve its parent main-agent thread, find the exact marker in the
@@ -32,6 +32,11 @@ the native backend; the default is Codex.
   identify the main session, its child/subagent sessions, model, and token
   usage. Provide `--caller-session-id` (or `OPENCODE_SESSION_ID`) for the
   Archivist child session.
+- The Claude Code backend reads transcript JSONL beneath `~/.claude/projects/`
+  (or `--export-file` / `--export-dir` for pre-exported transcripts), resolving
+  subagent transcripts from `subagents/` directories or sidechain `agentId`
+  records. Provide `--caller-session-id` (or `CLAUDE_SESSION_ID`) for the
+  Archivist subagent session.
 
 Return only the script's six-column Markdown table verbatim to the main agent,
 with no pricing, estimates, inferred usage, or additional statistics. Treat a

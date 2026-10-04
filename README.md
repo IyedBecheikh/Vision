@@ -7,9 +7,10 @@
 
 Built for token-efficient agent orchestration, with swarm execution, persistent context support, and compact knowledge handoffs between agents. `agent_docs/` provides durable project memory for goals, architecture, decisions, progress, and session handoffs.
 
-Vision is **one workflow with two native runtime backends**: the Codex CLI/app and
-OpenCode. Installation, updates, configuration, removal, and token reporting
-support either client or both, and shared workflow logic is never duplicated.
+Vision is **one workflow with three native runtime backends**: the Codex CLI/app,
+OpenCode, and Claude Code. Installation, updates, configuration, removal, and
+token reporting support any client or any combination, and shared workflow logic
+is never duplicated.
 
 > ⭐ For lightweight tasks, it won’t overdo things. Light route is default.
 
@@ -32,20 +33,31 @@ The initial bootstrap will include creating the project documentation framework 
 ### OpenCode
 
 OpenCode loads the same workflow from its native user configuration
-(`~/.config/opencode/`). Install it explicitly, or both clients at once:
+(`~/.config/opencode/`). Install it explicitly, a subset, or every client at once:
 
 ```text
 vision --install --platform codex
 vision --install --platform opencode
-vision --install --platform both
+vision --install --platform claude
+vision --install --platform both      # Codex + OpenCode
+vision --install --platform all       # Codex + OpenCode + Claude Code
 ```
 
 When `--platform` is omitted and multiple supported clients are detected, Vision
-asks which to use. OpenCode owns provider authentication, credentials, and the
-main-session model; Vision installs only the shared instructions, the six native
-Markdown subagents (`explorer`, `investigator`, `default_executor`,
-`senior_executor`, `tester`, `archivist`), and the `deployment-token-report`
-skill. Restart OpenCode after installation.
+asks which to use. OpenCode and Claude Code own provider authentication,
+credentials, and the main-session model; Vision installs only the shared
+instructions, the six native subagents (`explorer`, `investigator`,
+`default_executor`, `senior_executor`, `tester`, `archivist`), the native command
+surface, and the `deployment-token-report` skill. Restart the client after
+installation.
+
+### Claude Code
+
+Claude Code loads the workflow from its native user configuration (`~/.claude/`).
+Vision installs Markdown subagents under `~/.claude/agents/`, slash commands
+under `~/.claude/commands/`, the shared policy region in `~/.claude/CLAUDE.md`,
+and the token-report skill under `~/.claude/skills/`. Worker roles default to
+**Sonnet 5.5** and the high-end Senior Executor defaults to **Opus 5.5**.
 
 **Note:** If you cannot upgrade directly to a newer version. Run `vision --remove` to uninstall it first, then install the newer version.
 
@@ -79,20 +91,21 @@ Vision installs first-class entry points in each client. They activate the same
 shared workflow as natural language; they are not separate route implementations
 and the deterministic CLI still does every mutation.
 
-| Vision action | Codex skill | OpenCode command |
-| --- | --- | --- |
-| Light | `$vision-light` | `/light` |
-| Medium | `$vision-medium` | `/medium` |
-| Heavy | `$vision-heavy` | `/heavy` |
-| Install | `$vision-install` | `/install` |
-| Update | `$vision-update` | `/update` |
-| Configure | `$vision-config` | `/config` |
-| Remove | `$vision-remove` | `/remove` |
+| Vision action | Codex skill | OpenCode command | Claude Code command |
+| --- | --- | --- | --- |
+| Light | `$vision-light` | `/light` | `/light` |
+| Medium | `$vision-medium` | `/medium` | `/medium` |
+| Heavy | `$vision-heavy` | `/heavy` | `/heavy` |
+| Install | `$vision-install` | `/install` | `/install` |
+| Update | `$vision-update` | `/update` | `/update` |
+| Configure | `$vision-config` | `/config` | `/config` |
+| Remove | `$vision-remove` | `/remove` | `/remove` |
 
 ```text
 $vision-heavy Implement authentication      # Codex
-/heavy Implement authentication             # OpenCode
-/config senior openai/gpt-6-sol#medium      # OpenCode
+/heavy Implement authentication             # OpenCode / Claude Code
+/config senior claude-opus-5-5                # Claude Code
+/config senior openai/gpt-6.1-sol#medium      # OpenCode
 ```
 
 All of `use heavy route. Fix X`, `$vision-heavy Fix X`, and `/heavy Fix X` enter
@@ -111,15 +124,18 @@ Switching a model preserves that role's reasoning effort.
 On OpenCode, configure any worker role with a native model id
 (`provider/model` or `provider/model#variant`); Vision stores the mapping and
 regenerates that role's agent file, so generated `agents/*.md` files are never
-edited by hand:
+edited by hand. On Claude Code, the same worker-role keys accept a Claude model
+alias (`sonnet`, `opus`, `haiku`) or a full Anthropic model id; `sol` and `luna`
+map to the Claude defaults Opus 5.5 and Sonnet 5.5:
 
 ```text
-vision --config explorer anthropic/claude-sonnet-4-5#high
-vision --config senior_executor openai/gpt-5.1-codex#high
+vision --config explorer anthropic/claude-sonnet-4-5#high   # OpenCode
+vision --config senior_executor openai/gpt-5.1-codex#high   # OpenCode
+vision --config senior_executor claude-opus-5-5             # Claude Code
 ```
 
-Pass `--platform opencode` when both clients are installed. The OpenCode
-main/orchestrator model stays under OpenCode's own control.
+Pass `--platform opencode` or `--platform claude` when more than one client is
+installed. The main/orchestrator model stays under each client's own control.
 
 In Heavy, workers return compact evidence-linked reports directly to the main
 agent through the platform's native parent-child result channel (Codex threads
@@ -162,17 +178,17 @@ tasks and AI providers.
 
 ## 3. More details 
 
-Send these exact commands to Codex (or OpenCode) from the relevant project directory:
+Send these exact commands to Codex, OpenCode, or Claude Code from the relevant project directory:
 
 | Command | Purpose |
 | --- | --- |
-| `vision --install` | Install workflow in the current project and initialize its documentation framework. Add `--platform codex\|opencode\|both` to select clients. |
+| `vision --install` | Install workflow in the current project and initialize its documentation framework. Add `--platform codex\|opencode\|claude\|both\|all` to select clients. |
 | `vision --check-update` | Check for a newer release without installing it. |
 | `vision --config orch sol\|luna` | Switch the Codex orchestrator (main-agent) model; use `luna` for an all-Luna workflow. |
 | `vision --config senior sol\|luna` | Switch the Codex Senior Executor model; use `luna` (with `orch luna`) for an all-Luna workflow. |
-| `vision --config <role> <model-id>` | On OpenCode, map a worker role (`explorer`, `investigator`, `default_executor`, `senior_executor`, `tester`, `archivist`) to a native `provider/model#variant`. |
+| `vision --config <role> <model-id>` | On OpenCode or Claude Code, map a worker role (`explorer`, `investigator`, `default_executor`, `senior_executor`, `tester`, `archivist`) to a native model. |
 | `vision --update` | Install a newer release for the user and current project, or bring the current project up to an already installed release. |
-| `vision --remove` | Remove the installed workflow after a destructive dry-run and confirmation. Add `--platform codex\|opencode\|both` to select clients. |
+| `vision --remove` | Remove the installed workflow after a destructive dry-run and confirmation. Add `--platform codex\|opencode\|claude\|both\|all` to select clients. |
 
 For the complete architecture, route, lifecycle, ownership, safety, and release
 analysis, see [workflow_breakdown.md](workflow_breakdown.md).

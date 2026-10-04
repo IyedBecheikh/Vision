@@ -157,7 +157,7 @@ current operating system and shell.
 
 When the user's trimmed message matches one of the following command forms,
 read and follow the corresponding guide. Forms without placeholders must match
-exactly. Native `$vision-*` skills (Codex) and `/light`, `/medium`, `/heavy`, `/install`, `/update`, `/config`, `/remove` (OpenCode) are equivalent entry points.
+exactly. Native `$vision-*` skills (Codex) and `/light`, `/medium`, `/heavy`, `/install`, `/update`, `/config`, `/remove` (OpenCode and Claude Code) are equivalent entry points.
 
 - vision --install
   Guide:  {{VISION_HOME}}/operate/install.md.
@@ -171,7 +171,8 @@ exactly. Native `$vision-*` skills (Codex) and `/light`, `/medium`, `/heavy`, `/
 - vision --config orch|senior sol|luna
   Guide: {{VISION_HOME}}/operate/config.md.
   Set the orchestrator (`orch`) or Senior Executor (`senior`) model. `sol`
-  selects Sol; `luna` selects Luna for an all-Luna workflow.
+  selects Sol (Opus 5.5 on Claude Code); `luna` selects Luna (Sonnet 5.5 on
+  Claude Code) for an all-Luna workflow.
 
 - vision --remove
   Guide: {{VISION_HOME}}/operate/remove.md.

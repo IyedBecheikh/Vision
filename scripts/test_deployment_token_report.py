@@ -630,5 +630,152 @@ class OpenCodeTokenReportTests(unittest.TestCase):
         self.assertEqual(completed.stdout, "")
 
 
+class ClaudeTokenReportTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.transcripts = Path(self.temporary.name) / "transcripts"
+        self.transcripts.mkdir(parents=True)
+        self.root_id = "root-session"
+        self.explorer_id = "explorer-session"
+        self.closure_id = "archivist-session"
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def write_transcript(self, name: str, records: list[dict[str, object]]) -> None:
+        lines = "\n".join(json.dumps(record) for record in records) + "\n"
+        (self.transcripts / f"{name}.jsonl").write_text(lines, encoding="utf-8")
+
+    def build_fixture(self) -> None:
+        self.write_transcript(
+            "root",
+            [
+                {
+                    "type": "user",
+                    "sessionId": self.root_id,
+                    "timestamp": "2026-08-23T10:00:00Z",
+                    "message": {"role": "user", "content": "deployment request"},
+                },
+                {
+                    "type": "assistant",
+                    "sessionId": self.root_id,
+                    "timestamp": "2026-08-23T10:00:10Z",
+                    "message": {
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "<!-- vision-deployment-start: major_task -->\nStarting.",
+                            }
+                        ],
+                        "usage": {"input_tokens": 310, "output_tokens": 10},
+                    },
+                },
+                {
+                    "type": "assistant",
+                    "sessionId": self.root_id,
+                    "timestamp": "2026-08-23T10:00:20Z",
+                    "message": {
+                        "role": "assistant",
+                        "content": [{"type": "text", "text": "working"}],
+                        "usage": {
+                            "input_tokens": 300,
+                            "output_tokens": 50,
+                            "cache_read_input_tokens": 210,
+                        },
+                    },
+                },
+            ],
+        )
+        self.write_transcript(
+            "explorer",
+            [
+                {
+                    "type": "assistant",
+                    "sessionId": self.explorer_id,
+                    "parentSessionId": self.root_id,
+                    "subagentType": "explorer",
+                    "timestamp": "2026-08-23T10:00:15Z",
+                    "message": {
+                        "role": "assistant",
+                        "content": [{"type": "text", "text": "context map"}],
+                        "usage": {
+                            "input_tokens": 50,
+                            "output_tokens": 10,
+                            "cache_read_input_tokens": 40,
+                        },
+                    },
+                }
+            ],
+        )
+        self.write_transcript(
+            "archivist",
+            [
+                {
+                    "type": "assistant",
+                    "sessionId": self.closure_id,
+                    "parentSessionId": self.root_id,
+                    "subagentType": "archivist",
+                    "timestamp": "2026-08-23T10:00:40Z",
+                    "message": {
+                        "role": "assistant",
+                        "content": [{"type": "text", "text": "closure"}],
+                        "usage": {
+                            "input_tokens": 10,
+                            "output_tokens": 2,
+                            "cache_read_input_tokens": 5,
+                        },
+                    },
+                }
+            ],
+        )
+
+    def run_report(self, *extra: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [
+                sys.executable,
+                "-B",
+                str(SCRIPT),
+                "--platform",
+                "claude",
+                "--deployment-id",
+                "major_task",
+                "--export-dir",
+                str(self.transcripts),
+                "--caller-session-id",
+                self.closure_id,
+                "--end-time",
+                "2026-08-23T10:06:00Z",
+                "--format",
+                "json",
+                *extra,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+    def test_compiles_claude_six_column_report(self) -> None:
+        self.build_fixture()
+        completed = self.run_report()
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        report = json.loads(completed.stdout)
+        self.assertEqual(report["platform"], "claude")
+        by_agent = {row["agent"]: row for row in report["rows"]}
+        self.assertEqual(by_agent["explorer"]["input_tokens"], 90)
+        self.assertEqual(by_agent["explorer"]["cached_input_tokens"], 40)
+        self.assertEqual(by_agent["explorer"]["quantity"], 1)
+        self.assertEqual(by_agent["archivist"]["output_tokens"], 2)
+        self.assertEqual(by_agent["main agent"]["input_tokens"], 820)
+        self.assertEqual(by_agent["main agent"]["cached_input_tokens"], 210)
+
+    def test_missing_marker_fails_without_guessing(self) -> None:
+        self.build_fixture()
+        completed = self.run_report("--deployment-id", "different_task")
+        self.assertEqual(completed.returncode, 2)
+        self.assertIn("was not found", completed.stderr)
+        self.assertEqual(completed.stdout, "")
+
+
 if __name__ == "__main__":
     unittest.main()

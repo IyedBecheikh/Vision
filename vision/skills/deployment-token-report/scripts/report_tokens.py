@@ -11,12 +11,16 @@ from __future__ import annotations
 import argparse
 import sys
 
-PLATFORMS = ("codex", "opencode")
+PLATFORMS = ("codex", "opencode", "claude")
 
 
 def _select_backend(platform: str):
     if platform == "opencode":
         import report_tokens_opencode as backend
+
+        return backend
+    if platform == "claude":
+        import report_tokens_claude as backend
 
         return backend
     import report_tokens_codex as backend

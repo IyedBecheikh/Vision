@@ -127,7 +127,7 @@ def _route_body(spec: CommandSpec, *, platform: str) -> list[str]:
             "Light works directly without subagents and with minimal context; do "
             "not enter deployment state unless the task is substantive."
         )
-    if platform == "opencode":
+    if platform in {"opencode", "claude"}:
         return [
             f"Activate the Vision **{spec.route}** route, then complete the task.",
             "",
@@ -230,6 +230,23 @@ def render_opencode_command(spec: CommandSpec, *, home_display: str) -> str:
     return substitute_vision_home("\n".join(lines), home_display=home_display)
 
 
+def render_claude_command(spec: CommandSpec, *, home_display: str) -> str:
+    """Render one command as a Claude Code ``commands/<name>.md`` file."""
+
+    lines = [
+        "---",
+        f"description: {spec.description}",
+        "argument-hint: [request]",
+        "---",
+        "",
+        command_marker(spec.name),
+        "",
+        *_body(spec, platform="claude"),
+        "",
+    ]
+    return substitute_vision_home("\n".join(lines), home_display=home_display)
+
+
 __all__ = [
     "CODEX_SKILL_PREFIX",
     "COMMANDS_BY_NAME",
@@ -238,6 +255,7 @@ __all__ = [
     "VISION_COMMANDS",
     "command_marker",
     "command_marker_name",
+    "render_claude_command",
     "render_codex_interface",
     "render_codex_skill",
     "render_opencode_command",

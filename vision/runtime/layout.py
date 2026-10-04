@@ -142,6 +142,7 @@ class PackageLayout:
                 "runtime/platforms/__init__.py",
                 "runtime/platforms/base.py",
                 "runtime/platforms/codex.py",
+                "runtime/platforms/claude.py",
                 "runtime/platforms/opencode.py",
             ]
             missing = [relative for relative in required if not (self.root / relative).is_file()]
@@ -199,6 +200,7 @@ class PackageLayout:
                     skill_root / "SKILL.md",
                     skill_root / "agents" / "openai.yaml",
                     skill_root / "scripts" / "report_tokens.py",
+                    skill_root / "scripts" / "report_tokens_claude.py",
                     skill_root / "scripts" / "report_tokens_codex.py",
                     skill_root / "scripts" / "report_tokens_opencode.py",
                 )

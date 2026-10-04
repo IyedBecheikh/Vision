@@ -32,8 +32,8 @@ python3 {{VISION_HOME}}/runtime/workflow.py install \
   --project <project>
 ```
 
-Pass `--platform codex|opencode|both` to select which installed client(s) the
-project should track. Use the command to read templates from the existing
+Pass `--platform codex|opencode|claude|both|all` to select which installed
+client(s) the project should track. Use the command to read templates from the existing
 user-level bootstrap and
 change only the current project. Expect it to create missing files in the
 `agent_docs/` scaffold, workflow state, and other project-level assets. Preserve
@@ -51,7 +51,8 @@ For every new installation or documentation-recovery result, run the required
 `archivist` action. Skip it for a healthy `already installed` no-op. Spawn the
 returned action (in Codex with
 `agent_type="archivist"`, `task_name="install_docs"`, and
-`fork_turns="none"`; in OpenCode as the native `archivist` subagent). Use Task ID
+`fork_turns="none"`; in OpenCode or Claude Code as the native `archivist`
+subagent). Use Task ID
 `install_docs` and the Documentation Context +
 Audience, Documentation Task + Goal, and Main-Agent Documentation Guidance
 capsule. Pass the project root and returned `files`, `created_files`,

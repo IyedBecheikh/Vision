@@ -21,12 +21,13 @@ For exact behavior, use the source that owns the relevant contract:
   closure;
 - `vision/operate/*.md` for user-facing lifecycle procedures;
 - `vision/runtime/*.py` for deterministic lifecycle mutations;
-- `vision/runtime/platforms/*.py` for the Codex and OpenCode runtime backends;
+- `vision/runtime/platforms/*.py` for the Codex, OpenCode, and Claude Code
+  runtime backends;
 - `vision/runtime/commands.py` for the canonical native command mapping and
   renderers; and
 - `vision/skills/deployment-token-report/` for deployment usage
-  reporting (a shared entry point over `report_tokens_codex.py` and
-  `report_tokens_opencode.py`).
+  reporting (a shared entry point over `report_tokens_codex.py`,
+  `report_tokens_opencode.py`, and `report_tokens_claude.py`).
 
 This revision describes packaged version `1.0.0`, read from
 `vision/operate/VERSION`. Version markers, package validation, and
@@ -35,15 +36,16 @@ instruction block.
 
 ## Platform Backends
 
-Vision is one workflow with two native runtime backends. A platform adapter owns
-only the client-specific realization of the shared workflow:
+Vision is one workflow with three native runtime backends. A platform adapter
+owns only the client-specific realization of the shared workflow:
 
 ```text
 canonical worker instructions (vision/workers/<role>.md)
         |
  platform renderer
-   /             \
-Codex TOML      OpenCode Markdown
+   /          |          \
+Codex TOML   OpenCode    Claude Code
+             Markdown    Markdown
 ```
 
 - **Codex** installs to `~/.codex/`: TOML workers in `~/.codex/agents/`, the
@@ -58,27 +60,39 @@ Codex TOML      OpenCode Markdown
   credentials, available models, and the main-session model; Vision only adds
   worker-role agent files. Read-only roles deny `edit` and `bash`; every worker
   denies `task` so workers cannot orchestrate each other.
+- **Claude Code** installs to `~/.claude/`: Markdown subagents in
+  `~/.claude/agents/`, slash commands in `~/.claude/commands/`, the managed
+  region in `~/.claude/CLAUDE.md`, the skill in `~/.claude/skills/`, and the
+  runtime in `~/.claude/vision/`. Claude Code owns provider authentication,
+  credentials, available models, and the main-session model; Vision only adds
+  worker-role agent files. Read-only roles are rendered without file-editing
+  tools. Worker roles default to Sonnet 5.5 (the canonical `luna` target) and the
+  Senior Executor defaults to Opus 5.5 (the canonical `sol` target).
 - **Selection** is explicit and persisted: `--platform codex`, `--platform
-  opencode`, or `--platform both`. Installs, updates, and removals operate only
-  on the selected platform's Vision-owned resources, and unrelated client
-  content is preserved. Interactive installs prompt when several clients are
-  detected and no platform is given.
-- **Worker models** for OpenCode use native `provider/model#variant` ids stored
-  in Vision-owned configuration
-  (`~/.config/opencode/vision/config.json`); changing a mapping regenerates the
-  affected `agents/*.md` file so users never edit generated files by hand.
+  opencode`, `--platform claude`, `--platform both` (Codex + OpenCode), or
+  `--platform all`. Installs, updates, and removals operate only on the selected
+  platform's Vision-owned resources, and unrelated client content is preserved.
+  Interactive installs prompt when several clients are detected and no platform
+  is given.
+- **Worker models** for OpenCode use native `provider/model#variant` ids, and for
+  Claude Code native aliases (`sonnet`, `opus`, `haiku`) or full Anthropic model
+  ids, stored in Vision-owned configuration
+  (`~/.config/opencode/vision/config.json`, `~/.claude/vision/config.json`);
+  changing a mapping regenerates the affected `agents/*.md` file so users never
+  edit generated files by hand.
 - **Native commands** come from one canonical mapping
   (`runtime/commands.py`). Each platform backend installs its own surface:
   Codex skills (`$vision-light`, `$vision-medium`, `$vision-heavy`,
   `$vision-install`, `$vision-update`, `$vision-config`, `$vision-remove`) and
-  OpenCode slash commands (`/light`, `/medium`, `/heavy`, `/install`,
+  OpenCode/Claude Code slash commands (`/light`, `/medium`, `/heavy`, `/install`,
   `/update`, `/config`, `/remove`). Route commands activate the existing shared
   route; lifecycle commands call the deterministic runtime. Vision does not rely
   on legacy `~/.codex/prompts` custom slash commands.
 - **Token reporting** uses one shared entry point with a separate backend per
-  platform: `report_tokens_codex.py` reads Codex session JSONL, while
+  platform: `report_tokens_codex.py` reads Codex session JSONL,
   `report_tokens_opencode.py` uses OpenCode's native session list and export
-  interfaces. The final six-column report format is identical.
+  interfaces, and `report_tokens_claude.py` reads Claude Code transcript JSONL.
+  The final six-column report format is identical.
 
 
 ## 0. A Deep Dive into Codex Orchestration

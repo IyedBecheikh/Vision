@@ -313,6 +313,7 @@ def _verify_member_names(names: Iterable[str]) -> list[str]:
         f"{PACKAGE_DIR_NAME}/runtime/workers.py",
         f"{PACKAGE_DIR_NAME}/runtime/platforms/__init__.py",
         f"{PACKAGE_DIR_NAME}/runtime/platforms/base.py",
+        f"{PACKAGE_DIR_NAME}/runtime/platforms/claude.py",
         f"{PACKAGE_DIR_NAME}/runtime/platforms/codex.py",
         f"{PACKAGE_DIR_NAME}/runtime/platforms/opencode.py",
     }
@@ -328,6 +329,7 @@ def _verify_member_names(names: Iterable[str]) -> list[str]:
                 f"{PACKAGE_DIR_NAME}/skills/{skill}/SKILL.md",
                 f"{PACKAGE_DIR_NAME}/skills/{skill}/agents/openai.yaml",
                 f"{PACKAGE_DIR_NAME}/skills/{skill}/scripts/report_tokens.py",
+                f"{PACKAGE_DIR_NAME}/skills/{skill}/scripts/report_tokens_claude.py",
                 f"{PACKAGE_DIR_NAME}/skills/{skill}/scripts/report_tokens_codex.py",
                 f"{PACKAGE_DIR_NAME}/skills/{skill}/scripts/report_tokens_opencode.py",
             }

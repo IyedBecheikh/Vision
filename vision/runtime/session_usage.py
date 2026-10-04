@@ -52,7 +52,9 @@ def _collect(platform: str, skills_dir: Path, options: dict[str, Any]) -> list[S
         "start_time": "--start-time",
         "end_time": "--end-time",
         "sessions_root": "--sessions-root",
+        "projects_root": "--projects-root",
         "opencode_bin": "--opencode-bin",
+        "claude_bin": "--claude-bin",
         "export_file": "--export-file",
         "export_dir": "--export-dir",
     }
@@ -99,3 +101,8 @@ def collect_codex_usage(**options: Any) -> list[SessionUsage]:
 def collect_opencode_usage(**options: Any) -> list[SessionUsage]:
     skills_dir = Path(options.pop("skills_dir"))
     return _collect("opencode", skills_dir, options)
+
+
+def collect_claude_usage(**options: Any) -> list[SessionUsage]:
+    skills_dir = Path(options.pop("skills_dir"))
+    return _collect("claude", skills_dir, options)
