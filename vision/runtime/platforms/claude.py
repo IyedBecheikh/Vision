@@ -5,7 +5,7 @@ main-session model selection. Vision installs native Markdown subagents, the
 shared global instruction region (``CLAUDE.md``), and its own slash commands and
 skill, then records ownership so it can update or remove exactly what it created.
 
-Workers default to Sonnet (the canonical ``luna`` target) and the high-end
+Workers default to Haiku (the canonical ``luna`` target) and the high-end
 Senior Executor defaults to Opus (the canonical ``sol`` target).
 """
 

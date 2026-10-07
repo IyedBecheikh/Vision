@@ -14,11 +14,11 @@ MODEL_TARGETS: dict[str, str] = {
 }
 
 # Claude Code resolves the same abstract worker targets to Anthropic models:
-# the worker target (``luna``) maps to Sonnet and the high-end target (``sol``)
+# the worker target (``luna``) maps to Haiku and the high-end target (``sol``)
 # maps to Opus.
 CLAUDE_MODEL_TARGETS: dict[str, str] = {
     "sol": "claude-opus-5-5",
-    "luna": "claude-sonnet-5-5",
+    "luna": "claude-haiku-5-5",
 }
 
 DEFAULT_ORCHESTRATOR_TARGET = "sol"

@@ -66,7 +66,7 @@ Codex TOML   OpenCode    Claude Code
   runtime in `~/.claude/vision/`. Claude Code owns provider authentication,
   credentials, available models, and the main-session model; Vision only adds
   worker-role agent files. Read-only roles are rendered without file-editing
-  tools. Worker roles default to Sonnet 5.5 (the canonical `luna` target) and the
+  tools. Worker roles default to Haiku 5.5 (the canonical `luna` target) and the
   Senior Executor defaults to Opus 5.5 (the canonical `sol` target).
 - **Selection** is explicit and persisted: `--platform codex`, `--platform
   opencode`, `--platform claude`, `--platform both` (Codex + OpenCode), or

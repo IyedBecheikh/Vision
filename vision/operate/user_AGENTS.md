@@ -171,7 +171,7 @@ exactly. Native `$vision-*` skills (Codex) and `/light`, `/medium`, `/heavy`, `/
 - vision --config orch|senior sol|luna
   Guide: {{VISION_HOME}}/operate/config.md.
   Set the orchestrator (`orch`) or Senior Executor (`senior`) model. `sol`
-  selects Sol (Opus 5.5 on Claude Code); `luna` selects Luna (Sonnet 5.5 on
+  selects Sol (Opus 5.5 on Claude Code); `luna` selects Luna (Haiku 5.5 on
   Claude Code) for an all-Luna workflow.
 
 - vision --remove

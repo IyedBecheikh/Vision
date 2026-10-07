@@ -44,7 +44,7 @@ generated outputs, and project-owned content.
 - `platforms/codex.py`: Codex backend, reproducing existing behavior.
 - `platforms/opencode.py`: OpenCode backend (native Markdown subagents,
   permissions, and ownership).
-- `platforms/claude.py`: Claude Code backend (Markdown subagents with Sonnet 5.5
+- `platforms/claude.py`: Claude Code backend (Markdown subagents with Haiku 5.5
   worker and Opus 5.5 high-end defaults, slash commands, and ownership).
 - `workers.py`: canonical worker store loader and Codex renderer.
 - `commands.py`: canonical native command mapping and Codex/OpenCode/Claude Code

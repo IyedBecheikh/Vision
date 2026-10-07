@@ -19,7 +19,7 @@ For OpenCode, use a native model ID of the form `provider/model` or
 `openai/gpt-5.1-codex`. For Claude Code, use a Claude alias (`sonnet`, `opus`,
 `haiku`, `inherit`) or a full Anthropic model id, for example
 `claude-opus-5-5`; the targets `sol` and `luna` map to the Claude defaults Opus
-5.5 and Sonnet 5.5. Both clients accept these worker-role keys, which regenerate
+5.5 and Haiku 5.5. Both clients accept these worker-role keys, which regenerate
 that role's agent file from Vision-owned configuration:
 
     vision --config explorer|investigator|default_executor|senior_executor|tester|archivist <model>

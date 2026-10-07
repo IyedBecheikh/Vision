@@ -57,7 +57,7 @@ Claude Code loads the workflow from its native user configuration (`~/.claude/`)
 Vision installs Markdown subagents under `~/.claude/agents/`, slash commands
 under `~/.claude/commands/`, the shared policy region in `~/.claude/CLAUDE.md`,
 and the token-report skill under `~/.claude/skills/`. Worker roles default to
-**Sonnet 5.5** and the high-end Senior Executor defaults to **Opus 5.5**.
+**Haiku 5.5** and the high-end Senior Executor defaults to **Opus 5.5**.
 
 **Note:** If you cannot upgrade directly to a newer version. Run `vision --remove` to uninstall it first, then install the newer version.
 
@@ -126,7 +126,7 @@ On OpenCode, configure any worker role with a native model id
 regenerates that role's agent file, so generated `agents/*.md` files are never
 edited by hand. On Claude Code, the same worker-role keys accept a Claude model
 alias (`sonnet`, `opus`, `haiku`) or a full Anthropic model id; `sol` and `luna`
-map to the Claude defaults Opus 5.5 and Sonnet 5.5:
+map to the Claude defaults Opus 5.5 and Haiku 5.5:
 
 ```text
 vision --config explorer anthropic/claude-sonnet-4-5#high   # OpenCode
